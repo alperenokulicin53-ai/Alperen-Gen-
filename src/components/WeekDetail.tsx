@@ -38,9 +38,9 @@ export function WeekDetail({
     status: 'not_started',
   };
 
-  // Get items for this week, sorted newest first
-  const weekItems = journalData.items
-    .filter(item => item.weekNumber === weekNumber)
+  // Get items for this week, sorted newest first (ensuring numeric comparison)
+  const weekItems = (journalData.items || [])
+    .filter(item => Number(item.weekNumber) === Number(weekNumber))
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const handlePrev = () => {

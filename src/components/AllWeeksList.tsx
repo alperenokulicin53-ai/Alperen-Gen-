@@ -72,8 +72,8 @@ export function AllWeeksList({
         <div className="space-y-6">
           {allWeeks.map(weekNum => {
             const meta = journalData.weeks[weekNum] || { weekNumber: weekNum, status: 'not_started' };
-            const items = journalData.items
-              .filter(it => it.weekNumber === weekNum)
+            const items = (journalData.items || [])
+              .filter(it => Number(it.weekNumber) === Number(weekNum))
               .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
             const isSelected = selectedWeek === weekNum;
 

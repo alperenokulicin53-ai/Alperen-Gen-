@@ -13,8 +13,8 @@ export function WeekGrid({ journalData, selectedWeek, onSelectWeek }: WeekGridPr
   const [filter, setFilter] = useState<'all' | 'with_content' | 'completed' | 'empty'>('all');
 
   const getWeekItems = (weekNum: number) => {
-    return journalData.items
-      .filter(item => item.weekNumber === weekNum)
+    return (journalData.items || [])
+      .filter(item => Number(item.weekNumber) === Number(weekNum))
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   };
 
