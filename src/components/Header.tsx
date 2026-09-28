@@ -1,13 +1,16 @@
-import React from 'react';
-import { Download, Plus } from 'lucide-react';
+import React, { useRef } from 'react';
+import { Download, Upload, Plus } from 'lucide-react';
 import { JournalData } from '../types/journal';
 
 interface HeaderProps {
   onOpenAddModal: () => void;
   journalData: JournalData;
+  onImportData: (data: JournalData) => Promise<void>;
 }
 
-export function Header({ onOpenAddModal, journalData }: HeaderProps) {
+export function Header({ onOpenAddModal, journalData, onImportData }: HeaderProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const handleExport = () => {
     const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(journalData, null, 2));
     const downloadAnchor = document.createElement('a');
@@ -16,6 +19,31 @@ export function Header({ onOpenAddModal, journalData }: HeaderProps) {
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const content = event.target?.result as string;
+        const parsed = JSON.parse(content);
+        if (parsed && (parsed.items || parsed.weeks)) {
+          await onImportData(parsed);
+        } else {
+          alert('Geçersiz dosya formatı.');
+        }
+      } catch (err) {
+        alert('Yedek dosyası okunurken hata oluştu.');
+      }
+    };
+    reader.readAsText(file);
+    // reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   return (
@@ -37,8 +65,8 @@ export function Header({ onOpenAddModal, journalData }: HeaderProps) {
         </div>
 
         {/* Center / Right: Action buttons */}
-        <div className="flex items-center gap-2.5 sm:gap-4">
-          {/* Quick Add Button in Header - Önemli Mavi Buton */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Quick Add Button in Header */}
           <button
             onClick={onOpenAddModal}
             className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs sm:text-sm font-bold px-3.5 sm:px-4 py-2 rounded-xl transition-all shadow-xs cursor-pointer"
@@ -50,11 +78,28 @@ export function Header({ onOpenAddModal, journalData }: HeaderProps) {
           {/* Backup Export */}
           <button
             onClick={handleExport}
-            title="Günlüğü JSON olarak yedekle"
-            className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors border border-transparent hover:border-slate-200 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+            title="Günlüğü JSON olarak yedekle / indir"
+            className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
           >
-            <Download className="w-4 h-4 text-slate-600" />
-            <span className="hidden lg:inline">Yedek İndir</span>
+            <Download className="w-4 h-4 text-blue-600" />
+            <span className="hidden md:inline">Yedek İndir</span>
+          </button>
+
+          {/* Backup Import */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            accept=".json,application/json"
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            title="Yedek dosyasını geri yükle (telefona / başka cihaza aktar)"
+            className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+          >
+            <Upload className="w-4 h-4 text-slate-600" />
+            <span className="hidden md:inline">Yedek Yükle</span>
           </button>
         </div>
       </div>

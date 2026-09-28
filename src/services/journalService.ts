@@ -1,30 +1,45 @@
-import { JournalData, WeekItem, WeekComment, WeekStatus, createInitialJournalData } from '../types/journal';
+import { JournalData, WeekItem, WeekStatus, createInitialJournalData } from '../types/journal';
 
 const CACHE_KEY = 'alperen_genc_journal_cache';
 
+function getLocalData(): JournalData {
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed && parsed.weeks && Array.isArray(parsed.items)) {
+        return parsed;
+      }
+    }
+  } catch (err) {
+    console.warn('LocalStorage okuma hatası:', err);
+  }
+  return createInitialJournalData();
+}
+
+function saveLocalData(data: JournalData): void {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+  } catch (err) {
+    console.warn('LocalStorage kaydetme hatası:', err);
+  }
+}
+
 export async function loadJournalData(): Promise<JournalData> {
+  // First attempt backend API (works when deployed with server or in fullstack)
   try {
     const res = await fetch('/api/journal');
     if (res.ok) {
       const data: JournalData = await res.json();
-      localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+      saveLocalData(data);
       return data;
     }
   } catch (err) {
-    console.warn('API error, falling back to local storage cache:', err);
+    console.info('API servisine erişilemedi, yerel kalıcı hafızadan okunuyor.');
   }
 
-  // Fallback to local storage
-  const cached = localStorage.getItem(CACHE_KEY);
-  if (cached) {
-    try {
-      return JSON.parse(cached);
-    } catch {
-      // ignore
-    }
-  }
-
-  return createInitialJournalData();
+  // Guaranteed fallback to localStorage
+  return getLocalData();
 }
 
 export async function createItem(payload: {
@@ -35,57 +50,99 @@ export async function createItem(payload: {
   driveUrl?: string;
   formattedDate: string;
 }): Promise<WeekItem> {
+  const newItem: WeekItem = {
+    id: 'item_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+    weekNumber: payload.weekNumber,
+    type: payload.type,
+    title: payload.title.trim(),
+    content: payload.content.trim(),
+    driveUrl: payload.driveUrl ? payload.driveUrl.trim() : undefined,
+    createdAt: new Date().toISOString(),
+    formattedDate: payload.formattedDate,
+  };
+
+  // Always persist locally
+  const current = getLocalData();
+  const nextItems = [newItem, ...current.items];
+  const nextWeeks = { ...current.weeks };
+  if (nextWeeks[payload.weekNumber] && nextWeeks[payload.weekNumber].status === 'not_started') {
+    nextWeeks[payload.weekNumber] = {
+      ...nextWeeks[payload.weekNumber],
+      status: 'in_progress',
+    };
+  }
+  const updated: JournalData = {
+    ...current,
+    items: nextItems,
+    weeks: nextWeeks,
+  };
+  saveLocalData(updated);
+
+  // Background sync with API if available
   try {
-    const res = await fetch('/api/items', {
+    fetch('/api/items', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
-    });
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error || 'Yenilik eklenirken bir hata oluştu');
-    }
-    const created: WeekItem = await res.json();
-    return created;
-  } catch (err) {
-    // Client-side fallback if server fails
-    console.error('Failed to create item on server:', err);
-    const fallbackItem: WeekItem = {
-      id: 'local_' + Date.now(),
-      weekNumber: payload.weekNumber,
-      type: payload.type,
-      title: payload.title,
-      content: payload.content,
-      driveUrl: payload.driveUrl,
-      createdAt: new Date().toISOString(),
-      formattedDate: payload.formattedDate,
-    };
-    return fallbackItem;
+    }).catch(() => {});
+  } catch {
+    // ignore
   }
+
+  return newItem;
 }
 
 export async function updateItem(
   id: string,
   payload: { title?: string; content?: string; driveUrl?: string }
 ): Promise<void> {
-  const res = await fetch(`/api/items/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || 'Yenilik güncellenirken hata oluştu');
+  const current = getLocalData();
+  const nextItems = current.items.map(it =>
+    it.id === id
+      ? {
+          ...it,
+          title: payload.title !== undefined ? payload.title.trim() : it.title,
+          content: payload.content !== undefined ? payload.content.trim() : it.content,
+          driveUrl: payload.driveUrl !== undefined ? payload.driveUrl.trim() : it.driveUrl,
+          updatedAt: new Date().toISOString(),
+        }
+      : it
+  );
+  saveLocalData({ ...current, items: nextItems });
+
+  try {
+    fetch(`/api/items/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).catch(() => {});
+  } catch {
+    // ignore
   }
 }
 
 export async function deleteItem(id: string): Promise<void> {
-  const res = await fetch(`/api/items/${id}`, {
-    method: 'DELETE',
-  });
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || 'Yenilik silinirken hata oluştu');
+  const current = getLocalData();
+  const itemToDelete = current.items.find(it => it.id === id);
+  const nextItems = current.items.filter(it => it.id !== id);
+  const nextWeeks = { ...current.weeks };
+
+  if (itemToDelete) {
+    const remainingInWeek = nextItems.filter(it => it.weekNumber === itemToDelete.weekNumber);
+    if (remainingInWeek.length === 0 && nextWeeks[itemToDelete.weekNumber]?.status === 'in_progress') {
+      nextWeeks[itemToDelete.weekNumber] = {
+        ...nextWeeks[itemToDelete.weekNumber],
+        status: 'not_started',
+      };
+    }
+  }
+
+  saveLocalData({ ...current, items: nextItems, weeks: nextWeeks });
+
+  try {
+    fetch(`/api/items/${id}`, { method: 'DELETE' }).catch(() => {});
+  } catch {
+    // ignore
   }
 }
 
@@ -93,53 +150,38 @@ export async function updateWeekMeta(
   weekNumber: number,
   payload: { status?: WeekStatus; customTitle?: string }
 ): Promise<void> {
-  const res = await fetch(`/api/weeks/${weekNumber}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || 'Hafta güncellenirken hata oluştu');
-  }
-}
+  const current = getLocalData();
+  const nextWeeks = {
+    ...current.weeks,
+    [weekNumber]: {
+      ...current.weeks[weekNumber],
+      weekNumber,
+      status: payload.status || current.weeks[weekNumber]?.status || 'not_started',
+      customTitle: payload.customTitle !== undefined ? payload.customTitle : current.weeks[weekNumber]?.customTitle,
+    },
+  };
+  saveLocalData({ ...current, weeks: nextWeeks });
 
-export async function createComment(payload: {
-  weekNumber: number;
-  authorName: string;
-  content: string;
-  formattedDate: string;
-}): Promise<WeekComment> {
-  const res = await fetch('/api/comments', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || 'Yorum eklenirken hata oluştu');
-  }
-  return await res.json();
-}
-
-export async function deleteComment(id: string): Promise<void> {
-  const res = await fetch(`/api/comments/${id}`, {
-    method: 'DELETE',
-  });
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || 'Yorum silinirken hata oluştu');
+  try {
+    fetch(`/api/weeks/${weekNumber}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).catch(() => {});
+  } catch {
+    // ignore
   }
 }
 
 export async function importJournalData(data: JournalData): Promise<void> {
-  const res = await fetch('/api/journal/import', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || 'Veri yüklenirken hata oluştu');
+  saveLocalData(data);
+  try {
+    fetch('/api/journal/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).catch(() => {});
+  } catch {
+    // ignore
   }
 }

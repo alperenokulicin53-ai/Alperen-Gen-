@@ -217,12 +217,23 @@ export default function App() {
     }
   };
 
+  const handleImportData = async (data: JournalData) => {
+    try {
+      await journalService.importJournalData(data);
+      setJournalData(data);
+      addToast('success', 'Yedek başarıyla yüklendi ve güncellendi.');
+    } catch (err: unknown) {
+      addToast('error', 'Yedek yüklenirken hata oluştu.');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white text-slate-800 flex flex-col font-sans selection:bg-blue-100 selection:text-blue-900">
       {/* Top Bar Header with Blue + Yenilik Ekle button */}
       <Header
         onOpenAddModal={() => handleOpenAddModal(selectedWeek)}
         journalData={journalData}
+        onImportData={handleImportData}
       />
 
       {/* Main Content Area */}
