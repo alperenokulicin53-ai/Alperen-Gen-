@@ -1,7 +1,21 @@
+import {
+  collection,
+  doc,
+  getDocs,
+  setDoc,
+  deleteDoc,
+  onSnapshot,
+  query,
+  orderBy,
+  Unsubscribe,
+} from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { JournalData, WeekItem, WeekStatus, createInitialJournalData } from '../types/journal';
+import { INITIAL_JOURNAL_ITEMS } from '../data/seedData';
 
-const CACHE_KEY = 'alperen_genc_journal_cache';
+const CACHE_KEY = 'alperen_genc_journal_cache_v3';
 
+// Read local cache for instant zero-latency loading
 export function getLocalData(): JournalData {
   try {
     const cached = localStorage.getItem(CACHE_KEY);
@@ -12,69 +26,134 @@ export function getLocalData(): JournalData {
       }
     }
   } catch (err) {
-    console.warn('LocalStorage okuma hatası:', err);
+    console.warn('LocalStorage error:', err);
   }
-  return createInitialJournalData();
+
+  const base = createInitialJournalData();
+  base.items = [...INITIAL_JOURNAL_ITEMS];
+  INITIAL_JOURNAL_ITEMS.forEach(it => {
+    if (base.weeks[it.weekNumber]) {
+      base.weeks[it.weekNumber].status = 'in_progress';
+    }
+  });
+  return base;
 }
 
 export function saveLocalData(data: JournalData): void {
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify(data));
   } catch (err) {
-    console.warn('LocalStorage kaydetme hatası:', err);
+    console.warn('LocalStorage save error:', err);
   }
 }
 
+/**
+ * Loads current journal state from Firestore.
+ * If empty in Firestore, automatically seeds with initial items so the user's
+ * Week 1 Drive link is instantly in Firestore for all devices to read!
+ */
 export async function loadJournalData(): Promise<JournalData> {
   const local = getLocalData();
 
   try {
-    const res = await fetch('/api/journal', { cache: 'no-store' });
-    if (res.ok) {
-      const serverData: JournalData = await res.json();
-      
-      // If server has items or weeks, merge them
-      const combinedItemMap = new Map<string, WeekItem>();
-      
-      // Local items first
-      if (Array.isArray(local.items)) {
-        local.items.forEach(it => combinedItemMap.set(it.id, it));
+    const itemsCol = collection(db, 'items');
+    const itemsSnapshot = await getDocs(itemsCol);
+
+    const weeksCol = collection(db, 'weeks');
+    const weeksSnapshot = await getDocs(weeksCol);
+
+    const baseData = createInitialJournalData();
+
+    if (itemsSnapshot.empty) {
+      // First time initialization: seed Firestore with Week 1 Drive link
+      for (const item of INITIAL_JOURNAL_ITEMS) {
+        await setDoc(doc(db, 'items', item.id), item);
       }
-      // Server items overwrite/join
-      if (Array.isArray(serverData.items)) {
-        serverData.items.forEach(it => combinedItemMap.set(it.id, it));
-      }
-
-      const mergedItems = Array.from(combinedItemMap.values()).sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-
-      const mergedWeeks = { ...serverData.weeks };
-      if (local.weeks) {
-        Object.keys(local.weeks).forEach(k => {
-          const wNum = Number(k);
-          if (local.weeks[wNum]?.status && local.weeks[wNum].status !== 'not_started') {
-            mergedWeeks[wNum] = local.weeks[wNum];
-          }
-        });
-      }
-
-      const finalMerged: JournalData = {
-        weeks: mergedWeeks,
-        items: mergedItems,
-        comments: serverData.comments || [],
-      };
-
-      saveLocalData(finalMerged);
-      return finalMerged;
+      baseData.items = [...INITIAL_JOURNAL_ITEMS];
+      baseData.weeks[1].status = 'in_progress';
+      await setDoc(doc(db, 'weeks', '1'), { weekNumber: 1, status: 'in_progress' });
+      saveLocalData(baseData);
+      return baseData;
     }
-  } catch (err) {
-    console.warn('API servisine ulaşılamadı, yerel depolama kullanılıyor:', err);
-  }
 
-  return local;
+    const items: WeekItem[] = [];
+    itemsSnapshot.forEach(docSnap => {
+      items.push(docSnap.data() as WeekItem);
+    });
+
+    items.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    // Apply week status from Firestore
+    weeksSnapshot.forEach(docSnap => {
+      const wData = docSnap.data();
+      const wNum = Number(wData.weekNumber);
+      if (baseData.weeks[wNum]) {
+        baseData.weeks[wNum] = {
+          ...baseData.weeks[wNum],
+          status: wData.status || baseData.weeks[wNum].status,
+          customTitle: wData.customTitle,
+        };
+      }
+    });
+
+    // Make sure weeks with items are marked at least in_progress if not_started
+    items.forEach(it => {
+      if (baseData.weeks[it.weekNumber] && baseData.weeks[it.weekNumber].status === 'not_started') {
+        baseData.weeks[it.weekNumber].status = 'in_progress';
+      }
+    });
+
+    baseData.items = items;
+    saveLocalData(baseData);
+    return baseData;
+  } catch (err) {
+    console.warn('Firestore fetch failed, using local/seed cache:', err);
+    return local;
+  }
 }
 
+/**
+ * Real-time listener: Whenever any device (phone, teacher's PC, etc.) adds,
+ * edits, or deletes an item, this callback immediately receives the updated state!
+ */
+export function subscribeToJournal(onUpdate: (data: JournalData) => void): Unsubscribe {
+  const itemsQuery = query(collection(db, 'items'), orderBy('createdAt', 'desc'));
+
+  return onSnapshot(itemsQuery, snapshot => {
+    const current = getLocalData();
+    const items: WeekItem[] = [];
+    snapshot.forEach(docSnap => {
+      items.push(docSnap.data() as WeekItem);
+    });
+
+    const nextWeeks = { ...current.weeks };
+    items.forEach(it => {
+      if (nextWeeks[it.weekNumber] && nextWeeks[it.weekNumber].status === 'not_started') {
+        nextWeeks[it.weekNumber] = {
+          ...nextWeeks[it.weekNumber],
+          status: 'in_progress',
+        };
+      }
+    });
+
+    const updated: JournalData = {
+      ...current,
+      items,
+      weeks: nextWeeks,
+    };
+    saveLocalData(updated);
+    onUpdate(updated);
+  }, error => {
+    console.warn('Real-time subscription error:', error);
+  });
+}
+
+/**
+ * Creates an item in Cloud Firestore.
+ * Available instantly to any phone, PC, or browser!
+ */
 export async function createItem(payload: {
   weekNumber: number;
   type: 'post' | 'drive';
@@ -83,52 +162,49 @@ export async function createItem(payload: {
   driveUrl?: string;
   formattedDate: string;
 }): Promise<WeekItem> {
-  let createdItem: WeekItem | null = null;
+  const newItemId = 'item_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+  const newItem: WeekItem = {
+    id: newItemId,
+    weekNumber: Number(payload.weekNumber),
+    type: payload.type,
+    title: payload.title.trim(),
+    content: payload.content.trim(),
+    driveUrl: payload.driveUrl ? payload.driveUrl.trim() : undefined,
+    createdAt: new Date().toISOString(),
+    formattedDate: payload.formattedDate,
+  };
 
-  // 1. First try creating on server so all devices get it immediately
+  // 1. Write to Firestore cloud
   try {
-    const res = await fetch('/api/items', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-
-    if (res.ok) {
-      createdItem = await res.json();
-    }
+    await setDoc(doc(db, 'items', newItemId), newItem);
+    // Mark week status as in_progress in Firestore
+    await setDoc(
+      doc(db, 'weeks', String(newItem.weekNumber)),
+      { weekNumber: newItem.weekNumber, status: 'in_progress' },
+      { merge: true }
+    );
   } catch (err) {
-    console.warn('Sunucuya kaydedilemedi, yerel hafızaya kaydediliyor:', err);
+    console.error('Firestore write error:', err);
   }
 
-  // 2. If server request didn't return, build local fallback
-  if (!createdItem) {
-    createdItem = {
-      id: 'item_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
-      weekNumber: payload.weekNumber,
-      type: payload.type,
-      title: payload.title.trim(),
-      content: payload.content.trim(),
-      driveUrl: payload.driveUrl ? payload.driveUrl.trim() : undefined,
-      createdAt: new Date().toISOString(),
-      formattedDate: payload.formattedDate,
-    };
-  }
-
-  // Save to localStorage
+  // 2. Optimistic local cache update
   const current = getLocalData();
-  const nextItems = [createdItem, ...current.items.filter(i => i.id !== createdItem?.id)];
+  const nextItems = [newItem, ...current.items.filter(i => i.id !== newItem.id)];
   const nextWeeks = { ...current.weeks };
-  if (nextWeeks[payload.weekNumber] && nextWeeks[payload.weekNumber].status === 'not_started') {
-    nextWeeks[payload.weekNumber] = {
-      ...nextWeeks[payload.weekNumber],
+  if (nextWeeks[newItem.weekNumber] && nextWeeks[newItem.weekNumber].status === 'not_started') {
+    nextWeeks[newItem.weekNumber] = {
+      ...nextWeeks[newItem.weekNumber],
       status: 'in_progress',
     };
   }
   saveLocalData({ ...current, items: nextItems, weeks: nextWeeks });
 
-  return createdItem;
+  return newItem;
 }
 
+/**
+ * Updates an item in Cloud Firestore
+ */
 export async function updateItem(
   id: string,
   payload: { title?: string; content?: string; driveUrl?: string }
@@ -148,16 +224,23 @@ export async function updateItem(
   saveLocalData({ ...current, items: nextItems });
 
   try {
-    await fetch(`/api/items/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-  } catch {
-    // ignore
+    const itemRef = doc(db, 'items', id);
+    const updatePayload: Record<string, unknown> = {
+      updatedAt: new Date().toISOString(),
+    };
+    if (payload.title !== undefined) updatePayload.title = payload.title.trim();
+    if (payload.content !== undefined) updatePayload.content = payload.content.trim();
+    if (payload.driveUrl !== undefined) updatePayload.driveUrl = payload.driveUrl.trim();
+
+    await setDoc(itemRef, updatePayload, { merge: true });
+  } catch (err) {
+    console.error('Firestore update error:', err);
   }
 }
 
+/**
+ * Deletes an item from Cloud Firestore
+ */
 export async function deleteItem(id: string): Promise<void> {
   const current = getLocalData();
   const itemToDelete = current.items.find(it => it.id === id);
@@ -177,12 +260,15 @@ export async function deleteItem(id: string): Promise<void> {
   saveLocalData({ ...current, items: nextItems, weeks: nextWeeks });
 
   try {
-    await fetch(`/api/items/${id}`, { method: 'DELETE' });
-  } catch {
-    // ignore
+    await deleteDoc(doc(db, 'items', id));
+  } catch (err) {
+    console.error('Firestore delete error:', err);
   }
 }
 
+/**
+ * Updates week status (completed / in_progress / not_started) in Cloud Firestore
+ */
 export async function updateWeekMeta(
   weekNumber: number,
   payload: { status?: WeekStatus; customTitle?: string }
@@ -200,25 +286,30 @@ export async function updateWeekMeta(
   saveLocalData({ ...current, weeks: nextWeeks });
 
   try {
-    await fetch(`/api/weeks/${weekNumber}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-  } catch {
-    // ignore
+    await setDoc(
+      doc(db, 'weeks', String(weekNumber)),
+      {
+        weekNumber,
+        status: payload.status,
+        ...(payload.customTitle !== undefined ? { customTitle: payload.customTitle } : {}),
+      },
+      { merge: true }
+    );
+  } catch (err) {
+    console.error('Firestore week update error:', err);
   }
 }
 
 export async function importJournalData(data: JournalData): Promise<void> {
   saveLocalData(data);
   try {
-    await fetch('/api/journal/import', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-  } catch {
-    // ignore
+    for (const item of data.items) {
+      await setDoc(doc(db, 'items', item.id), item);
+    }
+    for (const week of Object.values(data.weeks)) {
+      await setDoc(doc(db, 'weeks', String(week.weekNumber)), week);
+    }
+  } catch (err) {
+    console.error('Firestore bulk import error:', err);
   }
 }

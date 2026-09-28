@@ -42,7 +42,7 @@ export default function App() {
     setToasts(prev => prev.filter(t => t.id !== id));
   };
 
-  // Load initial data
+  // Load initial data and subscribe to real-time changes
   useEffect(() => {
     async function init() {
       try {
@@ -53,6 +53,15 @@ export default function App() {
       }
     }
     init();
+
+    // Real-time Firestore sync: updates automatically when phone/PC adds or edits
+    const unsubscribe = journalService.subscribeToJournal(updatedData => {
+      setJournalData(updatedData);
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   // Save selected week to localStorage

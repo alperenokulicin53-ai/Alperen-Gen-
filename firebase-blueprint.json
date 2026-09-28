@@ -1,0 +1,76 @@
+{
+  "entities": {
+    "WeekItem": {
+      "title": "WeekItem",
+      "description": "A single journal item or drive link for a specific week",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the journal item"
+        },
+        "weekNumber": {
+          "type": "number",
+          "description": "Week number (1 to 30)"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["post", "drive"],
+          "description": "Type of item"
+        },
+        "title": {
+          "type": "string",
+          "description": "Item title"
+        },
+        "content": {
+          "type": "string",
+          "description": "Item content or description"
+        },
+        "driveUrl": {
+          "type": "string",
+          "description": "Google Drive or external URL"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of creation"
+        },
+        "formattedDate": {
+          "type": "string",
+          "description": "Formatted local date string"
+        }
+      },
+      "required": ["id", "weekNumber", "type", "title", "content", "createdAt", "formattedDate"]
+    },
+    "WeekMeta": {
+      "title": "WeekMeta",
+      "description": "Status and metadata for a specific week",
+      "type": "object",
+      "properties": {
+        "weekNumber": {
+          "type": "number",
+          "description": "Week number (1 to 30)"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["not_started", "in_progress", "completed"],
+          "description": "Completion status of the week"
+        },
+        "customTitle": {
+          "type": "string",
+          "description": "Optional title for the week"
+        }
+      },
+      "required": ["weekNumber", "status"]
+    }
+  },
+  "firestore": {
+    "/items/{itemId}": {
+      "schema": "WeekItem",
+      "description": "Collection of journal items across all 30 weeks"
+    },
+    "/weeks/{weekId}": {
+      "schema": "WeekMeta",
+      "description": "Metadata and completion status for each week"
+    }
+  }
+}
