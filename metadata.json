@@ -1,0 +1,6 @@
+{
+  "name": "Alperen Genç - Haftalık Gelişim Günlüğü",
+  "description": "Alperen Genç'in 30 haftalık gelişim süreci, proje adımları, haftalık çalışmaları ve dokümantasyon günlüğü.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
