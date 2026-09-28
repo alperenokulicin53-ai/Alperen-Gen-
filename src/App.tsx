@@ -17,7 +17,7 @@ import {
 import * as journalService from './services/journalService';
 
 export default function App() {
-  const [journalData, setJournalData] = useState<JournalData>(createInitialJournalData());
+  const [journalData, setJournalData] = useState<JournalData>(() => journalService.getLocalData());
   const [selectedWeek, setSelectedWeek] = useState<number>(() => {
     const saved = localStorage.getItem('alperen_selected_week');
     return saved ? Math.max(1, Math.min(30, parseInt(saved, 10))) : 1;

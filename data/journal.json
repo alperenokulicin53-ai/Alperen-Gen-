@@ -1,125 +1,35 @@
 {
   "weeks": {
-    "1": {
-      "weekNumber": 1,
-      "status": "not_started"
-    },
-    "2": {
-      "weekNumber": 2,
-      "status": "not_started"
-    },
-    "3": {
-      "weekNumber": 3,
-      "status": "not_started"
-    },
-    "4": {
-      "weekNumber": 4,
-      "status": "not_started"
-    },
-    "5": {
-      "weekNumber": 5,
-      "status": "not_started"
-    },
-    "6": {
-      "weekNumber": 6,
-      "status": "not_started"
-    },
-    "7": {
-      "weekNumber": 7,
-      "status": "not_started"
-    },
-    "8": {
-      "weekNumber": 8,
-      "status": "not_started"
-    },
-    "9": {
-      "weekNumber": 9,
-      "status": "not_started"
-    },
-    "10": {
-      "weekNumber": 10,
-      "status": "not_started"
-    },
-    "11": {
-      "weekNumber": 11,
-      "status": "not_started"
-    },
-    "12": {
-      "weekNumber": 12,
-      "status": "not_started"
-    },
-    "13": {
-      "weekNumber": 13,
-      "status": "not_started"
-    },
-    "14": {
-      "weekNumber": 14,
-      "status": "not_started"
-    },
-    "15": {
-      "weekNumber": 15,
-      "status": "not_started"
-    },
-    "16": {
-      "weekNumber": 16,
-      "status": "not_started"
-    },
-    "17": {
-      "weekNumber": 17,
-      "status": "not_started"
-    },
-    "18": {
-      "weekNumber": 18,
-      "status": "not_started"
-    },
-    "19": {
-      "weekNumber": 19,
-      "status": "not_started"
-    },
-    "20": {
-      "weekNumber": 20,
-      "status": "not_started"
-    },
-    "21": {
-      "weekNumber": 21,
-      "status": "not_started"
-    },
-    "22": {
-      "weekNumber": 22,
-      "status": "not_started"
-    },
-    "23": {
-      "weekNumber": 23,
-      "status": "not_started"
-    },
-    "24": {
-      "weekNumber": 24,
-      "status": "not_started"
-    },
-    "25": {
-      "weekNumber": 25,
-      "status": "not_started"
-    },
-    "26": {
-      "weekNumber": 26,
-      "status": "not_started"
-    },
-    "27": {
-      "weekNumber": 27,
-      "status": "not_started"
-    },
-    "28": {
-      "weekNumber": 28,
-      "status": "not_started"
-    },
-    "29": {
-      "weekNumber": 29,
-      "status": "not_started"
-    },
-    "30": {
-      "weekNumber": 30,
-      "status": "not_started"
-    }
+    "1": { "weekNumber": 1, "status": "not_started" },
+    "2": { "weekNumber": 2, "status": "not_started" },
+    "3": { "weekNumber": 3, "status": "not_started" },
+    "4": { "weekNumber": 4, "status": "not_started" },
+    "5": { "weekNumber": 5, "status": "not_started" },
+    "6": { "weekNumber": 6, "status": "not_started" },
+    "7": { "weekNumber": 7, "status": "not_started" },
+    "8": { "weekNumber": 8, "status": "not_started" },
+    "9": { "weekNumber": 9, "status": "not_started" },
+    "10": { "weekNumber": 10, "status": "not_started" },
+    "11": { "weekNumber": 11, "status": "not_started" },
+    "12": { "weekNumber": 12, "status": "not_started" },
+    "13": { "weekNumber": 13, "status": "not_started" },
+    "14": { "weekNumber": 14, "status": "not_started" },
+    "15": { "weekNumber": 15, "status": "not_started" },
+    "16": { "weekNumber": 16, "status": "not_started" },
+    "17": { "weekNumber": 17, "status": "not_started" },
+    "18": { "weekNumber": 18, "status": "not_started" },
+    "19": { "weekNumber": 19, "status": "not_started" },
+    "20": { "weekNumber": 20, "status": "not_started" },
+    "21": { "weekNumber": 21, "status": "not_started" },
+    "22": { "weekNumber": 22, "status": "not_started" },
+    "23": { "weekNumber": 23, "status": "not_started" },
+    "24": { "weekNumber": 24, "status": "not_started" },
+    "25": { "weekNumber": 25, "status": "not_started" },
+    "26": { "weekNumber": 26, "status": "not_started" },
+    "27": { "weekNumber": 27, "status": "not_started" },
+    "28": { "weekNumber": 28, "status": "not_started" },
+    "29": { "weekNumber": 29, "status": "not_started" },
+    "30": { "weekNumber": 30, "status": "not_started" }
   },
   "items": [],
   "comments": []
