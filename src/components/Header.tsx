@@ -66,24 +66,28 @@ export function Header({ onOpenAddModal, journalData, onImportData }: HeaderProp
         </div>
 
         {/* Center / Right: Theme Switcher & Action buttons */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5">
-          {/* Dark / Light Theme Toggle Button */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Prominent Dark / Light Theme Toggle Button */}
           <button
             onClick={toggleTheme}
             type="button"
-            title={theme === 'dark' ? 'Aydınlık Moda Geç' : 'Karanlık (Siyah) Moda Geç'}
+            title={theme === 'dark' ? 'Aydınlık moda geç' : 'Karanlık (Siyah) moda geç'}
             aria-label="Tema Değiştir"
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all text-xs font-semibold cursor-pointer shadow-2xs"
+            className={`flex items-center gap-2 px-3 py-2 rounded-xl border font-bold text-xs cursor-pointer transition-all shadow-xs ${
+              theme === 'dark'
+                ? 'bg-slate-800 hover:bg-slate-700 text-amber-300 border-slate-700 ring-2 ring-amber-400/20'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300 ring-2 ring-slate-400/20'
+            }`}
           >
             {theme === 'dark' ? (
               <>
-                <Sun className="w-4 h-4 text-amber-400 fill-amber-400/20" />
-                <span className="hidden md:inline">Aydınlık</span>
+                <Sun className="w-4 h-4 text-amber-400 animate-spin-slow" />
+                <span>Aydınlık Mod</span>
               </>
             ) : (
               <>
-                <Moon className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                <span className="hidden md:inline">Karanlık</span>
+                <Moon className="w-4 h-4 text-indigo-600" />
+                <span>Karanlık Mod</span>
               </>
             )}
           </button>
@@ -91,7 +95,7 @@ export function Header({ onOpenAddModal, journalData, onImportData }: HeaderProp
           {/* Quick Add Button in Header */}
           <button
             onClick={onOpenAddModal}
-            className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs sm:text-sm font-bold px-3 sm:px-4 py-2 rounded-xl transition-all shadow-xs cursor-pointer"
+            className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs sm:text-sm font-bold px-3.5 sm:px-4 py-2 rounded-xl transition-all shadow-xs cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
             <span>+ Yenilik Ekle</span>
