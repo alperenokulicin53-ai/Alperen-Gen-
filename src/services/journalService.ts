@@ -10,7 +10,7 @@ import {
   Unsubscribe,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { JournalData, WeekItem, WeekStatus, createInitialJournalData } from '../types/journal';
+import { JournalData, WeekItem, WeekComment, WeekStatus, createInitialJournalData } from '../types/journal';
 import { INITIAL_JOURNAL_ITEMS } from '../data/seedData';
 
 const CACHE_KEY = 'alperen_genc_journal_cache_v3';
@@ -313,3 +313,60 @@ export async function importJournalData(data: JournalData): Promise<void> {
     console.error('Firestore bulk import error:', err);
   }
 }
+
+/**
+ * Adds a new comment to local cache and server
+ */
+export async function addComment(payload: {
+  weekNumber: number;
+  authorName: string;
+  content: string;
+}): Promise<WeekComment> {
+  const newComment: WeekComment = {
+    id: 'cmt_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+    weekNumber: Number(payload.weekNumber),
+    authorName: payload.authorName.trim(),
+    content: payload.content.trim(),
+    createdAt: new Date().toISOString(),
+    formattedDate: new Date().toLocaleString('tr-TR', {
+      timeZone: 'Europe/Istanbul',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }),
+  };
+
+  const current = getLocalData();
+  const nextComments = [newComment, ...(current.comments || [])];
+  saveLocalData({ ...current, comments: nextComments });
+
+  try {
+    await fetch('/api/comments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newComment),
+    });
+  } catch (err) {
+    console.warn('Could not post comment to server:', err);
+  }
+
+  return newComment;
+}
+
+/**
+ * Deletes a comment
+ */
+export async function deleteComment(id: string): Promise<void> {
+  const current = getLocalData();
+  const nextComments = (current.comments || []).filter(c => c.id !== id);
+  saveLocalData({ ...current, comments: nextComments });
+
+  try {
+    await fetch(`/api/comments/${id}`, { method: 'DELETE' });
+  } catch (err) {
+    console.warn('Could not delete comment on server:', err);
+  }
+}
+

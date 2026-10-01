@@ -9,7 +9,7 @@ interface ItemCardProps {
   onDelete: (id: string) => void;
 }
 
-export function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
+export function ItemCard({ item, isAdmin, onEdit, onDelete }: ItemCardProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
 
@@ -70,20 +70,24 @@ export function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
               >
                 {isCopied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
               </button>
-              <button
-                onClick={() => onEdit(item)}
-                title="Düzenle"
-                className="p-1.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
-              >
-                <Edit2 className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setConfirmDelete(true)}
-                title="Sil"
-                className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              {isAdmin && (
+                <>
+                  <button
+                    onClick={() => onEdit(item)}
+                    title="Düzenle"
+                    className="p-1.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setConfirmDelete(true)}
+                    title="Sil"
+                    className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </>
+              )}
             </>
           )}
         </div>

@@ -15,6 +15,7 @@ import {
   Check,
 } from 'lucide-react';
 import { JournalData, WeekItem, TOTAL_WEEKS } from '../types/journal';
+import { useAuth } from '../context/AuthContext';
 
 interface AllWeeksListProps {
   journalData: JournalData;
@@ -33,6 +34,7 @@ export function AllWeeksList({
   onOpenEditModal,
   onDeleteItem,
 }: AllWeeksListProps) {
+  const { isAdmin } = useAuth();
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const allWeeks = Array.from({ length: TOTAL_WEEKS }, (_, i) => i + 1);
 
@@ -53,7 +55,7 @@ export function AllWeeksList({
                 Eksiksiz Süreç Kaydı
               </span>
               <span className="text-slate-300 dark:text-slate-700">·</span>
-              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">1 — 30. Hafta</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">1 — 38. Hafta</span>
             </div>
             <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
               Bütün Haftalık Gelişim Kayıtları
@@ -112,15 +114,17 @@ export function AllWeeksList({
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => onOpenAddModalForWeek(weekNum)}
-                      className="flex items-center gap-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 px-2.5 py-1 rounded-lg border border-blue-200 dark:border-blue-800/50 transition-colors cursor-pointer"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Ekle</span>
-                    </button>
-                  </div>
+                  {isAdmin && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => onOpenAddModalForWeek(weekNum)}
+                        className="flex items-center gap-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 px-2.5 py-1 rounded-lg border border-blue-200 dark:border-blue-800/50 transition-colors cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Ekle</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Week Items Feed Body */}
@@ -166,20 +170,24 @@ export function AllWeeksList({
                                   <Copy className="w-3.5 h-3.5" />
                                 )}
                               </button>
-                              <button
-                                onClick={() => onOpenEditModal(it)}
-                                title="Düzenle"
-                                className="p-1 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 rounded cursor-pointer"
-                              >
-                                <Edit2 className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => onDeleteItem(it.id)}
-                                title="Sil"
-                                className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded cursor-pointer"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              {isAdmin && (
+                                <>
+                                  <button
+                                    onClick={() => onOpenEditModal(it)}
+                                    title="Düzenle"
+                                    className="p-1 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 rounded cursor-pointer"
+                                  >
+                                    <Edit2 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => onDeleteItem(it.id)}
+                                    title="Sil"
+                                    className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded cursor-pointer"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </>
+                              )}
                             </div>
                           </div>
 

@@ -33,7 +33,7 @@ export interface JournalData {
   comments: WeekComment[];
 }
 
-export const TOTAL_WEEKS = 30;
+export const TOTAL_WEEKS = 38;
 
 export function createInitialJournalData(): JournalData {
   const weeks: Record<number, WeekMeta> = {};

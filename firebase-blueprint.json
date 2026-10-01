@@ -11,7 +11,7 @@
         },
         "weekNumber": {
           "type": "number",
-          "description": "Week number (1 to 30)"
+          "description": "Week number (1 to 38)"
         },
         "type": {
           "type": "string",
@@ -48,7 +48,7 @@
       "properties": {
         "weekNumber": {
           "type": "number",
-          "description": "Week number (1 to 30)"
+          "description": "Week number (1 to 38)"
         },
         "status": {
           "type": "string",
@@ -66,7 +66,7 @@
   "firestore": {
     "/items/{itemId}": {
       "schema": "WeekItem",
-      "description": "Collection of journal items across all 30 weeks"
+      "description": "Collection of journal items across all 38 weeks"
     },
     "/weeks/{weekId}": {
       "schema": "WeekMeta",

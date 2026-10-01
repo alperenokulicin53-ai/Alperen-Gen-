@@ -3,6 +3,10 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
+import dotenv from 'dotenv';
+import { GoogleGenAI } from '@google/genai';
+
+dotenv.config({ override: true });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,7 +15,7 @@ const PORT = 3000;
 const DATA_DIR = path.join(__dirname, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'journal.json');
 
-const TOTAL_WEEKS = 30;
+const TOTAL_WEEKS = 38;
 
 function getInitialData() {
   const weeks: Record<number, { weekNumber: number; customTitle?: string; status: 'not_started' | 'in_progress' | 'completed' }> = {};
@@ -223,6 +227,151 @@ async function startServer() {
     };
     writeData(data);
     res.json({ success: true, data });
+  });
+
+  // AI Chat Route powered by Gemini 2.5 Flash
+  app.post('/api/chat', async (req, res) => {
+    try {
+      const { message, history } = req.body;
+      if (!message || typeof message !== 'string') {
+        return res.status(400).json({ error: 'Mesaj metni zorunludur.' });
+      }
+
+      let apiKey = (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '').trim();
+      const envPath = path.join(__dirname, '.env');
+      if (fs.existsSync(envPath)) {
+        try {
+          const envContent = fs.readFileSync(envPath, 'utf-8');
+          const match = envContent.match(/GEMINI_API_KEY\s*=\s*["']?([^"'\r\n]+)["']?/);
+          if (match && match[1]) {
+            apiKey = match[1].trim();
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      if (!apiKey) {
+        return res.status(500).json({
+          error: 'Gemini API anahtarı sunucuda yapılandırılmamış.',
+        });
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
+      const currentData = readData();
+
+      // Create a clean summary of current weeks and items to feed into system prompt
+      const itemsSummary = (currentData.items || []).map((it: {
+        weekNumber: number;
+        type: string;
+        title: string;
+        content: string;
+        driveUrl?: string;
+        formattedDate?: string;
+      }) => {
+        return `[Hafta ${it.weekNumber}] (${it.type === 'drive' ? 'Google Drive Linki' : 'Gelişim Notu'}) Başlık: ${it.title} | Tarih: ${it.formattedDate || ''} | Açıklama: ${it.content}${it.driveUrl ? ` | URL: ${it.driveUrl}` : ''}`;
+      }).join('\n');
+
+      const weeksSummary = Object.entries(currentData.weeks || {}).map(([num, w]: [string, any]) => {
+        const trStatus = w.status === 'completed' ? 'Tamamlandı' : w.status === 'in_progress' ? 'Devam Ediyor' : 'Başlamadı / Boş';
+        return `Hafta ${num}: ${trStatus}${w.customTitle ? ` - ${w.customTitle}` : ''}`;
+      }).join(', ');
+
+      const systemInstruction = `Sen "AG Yapay Zekası"sın (Alperen Genç Gelişim Günlüğü AI Asistanı).
+Amacın: Alperen Genç'in 38 haftalık gelişim günlüğü, projeleri, öğretmen inceleme kayıtları ve eklediği çalışmalar hakkında sorulan sorulara doğru, kibar, samimi ve Türkçe yanıt vermektir.
+
+SİTE VE GELİŞİM GÜNLÜĞÜ HAKKINDA BİLGİLER:
+- Proje Sahibi: Alperen Genç (AG Kodlama).
+- Süreç: Toplam 38 haftalık proje geliştirme ve dokümantasyon süreci.
+- Özellikler: Haftalık kayıt ekleme (+ Yenilik Ekle), not ve Google Drive proje linkleri paylaşma, Canlı Türkiye saati, Aydınlık/Karanlık mod, JSON yedek indirip yükleme.
+
+ŞU ANKİ HAFTALIK DURUMLAR:
+${weeksSummary || 'Tüm haftalar 1-38 arası yapılandırılmıştır.'}
+
+SİTEDE ŞU ANDA KAYITLI TÜM YENİLİKLER VE DOKÜMANLAR:
+${itemsSummary || 'Henüz eklenmiş bir kayıt bulunmuyor.'}
+
+KURALLAR:
+1. Türkçe, net, yapıcı ve yardımcı bir üslupla konuş.
+2. Kullanıcı belirli bir hafta, proje veya Drive dosyası sorduğunda yukarıdaki gerçek güncel verileri referans vererek cevapla.
+3. Alperen Genç'in çalışmaları veya site işleyişi sorulduğunda rehberlik et.`;
+
+      // Build chat contents from history if provided
+      const contents: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }> = [];
+
+      if (Array.isArray(history)) {
+        for (const msg of history.slice(-8)) {
+          if (msg.role === 'user' || msg.role === 'model') {
+            contents.push({
+              role: msg.role,
+              parts: [{ text: String(msg.text || '') }],
+            });
+          }
+        }
+      }
+
+      contents.push({
+        role: 'user',
+        parts: [{ text: message }],
+      });
+
+      // Models to try in order: gemini-3.1-flash-lite, gemini-3.8-flash, gemini-flash-latest
+      const modelsToTry = [
+        'gemini-3.1-flash-lite',
+        'gemini-3.8-flash',
+        'gemini-flash-latest',
+        'gemini-3.5-flash',
+      ];
+
+      let replyText = '';
+      let lastError: Error | null = null;
+
+      for (const model of modelsToTry) {
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+          const apiResponse = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              systemInstruction: {
+                parts: [{ text: systemInstruction }],
+              },
+              contents,
+              generationConfig: {
+                temperature: 0.7,
+              },
+            }),
+          });
+
+          if (!apiResponse.ok) {
+            const errBody = await apiResponse.text();
+            throw new Error(`Status ${apiResponse.status}: ${errBody}`);
+          }
+
+          const resData: any = await apiResponse.json();
+          const candidateText = resData.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (candidateText) {
+            replyText = candidateText;
+            break;
+          }
+        } catch (mErr: unknown) {
+          console.warn(`Model ${model} failed, trying next:`, mErr instanceof Error ? mErr.message : mErr);
+          lastError = mErr instanceof Error ? mErr : new Error(String(mErr));
+        }
+      }
+
+      if (!replyText) {
+        throw lastError || new Error('Yapay zeka yanıt oluşturamadı.');
+      }
+
+      res.json({ reply: replyText });
+    } catch (err: unknown) {
+      console.error('Gemini API Error in /api/chat:', err);
+      const errMsg = err instanceof Error ? err.message : 'Yapay zeka yanıt verirken bir hata oluştu.';
+      res.status(500).json({ error: errMsg });
+    }
   });
 
   // Vite middleware mounting in development
