@@ -43,193 +43,165 @@ export function AllWeeksList({
   };
 
   return (
-    <section id="all-weeks-record-section" className="py-12 bg-slate-50/70 border-t border-slate-200">
+    <section id="all-weeks-record-section" className="py-8 sm:py-10 bg-slate-50/70 dark:bg-slate-900/60 border-t border-slate-200 dark:border-slate-800 transition-colors">
       <div className="max-w-5xl mx-auto px-4 sm:px-6">
         {/* Section Title */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-4 border-b border-slate-200">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-3 border-b border-slate-200 dark:border-slate-800">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-bold uppercase tracking-wider text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/70 border border-blue-200 dark:border-blue-800/60 px-2 py-0.5 rounded">
                 Eksiksiz Süreç Kaydı
               </span>
-              <span className="text-slate-300">·</span>
-              <span className="text-xs text-slate-500 font-medium">1 — 30. Hafta</span>
+              <span className="text-slate-300 dark:text-slate-700">·</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">1 — 30. Hafta</span>
             </div>
-            <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
               Bütün Haftalık Gelişim Kayıtları
             </h2>
-            <p className="text-xs sm:text-sm text-slate-600 mt-1">
-              30 haftanın tüm gelişim alanları burada tek tek listelenir; yazdıkça anında güncellenir.
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              Tüm dönem boyunca eklenen tüm çalışmalar, linkler ve dokümanlar liste halinde
             </p>
-          </div>
-
-          <div className="text-xs text-slate-600 bg-white border border-slate-200 rounded-xl px-4 py-2 font-medium self-start sm:self-auto shadow-2xs">
-            Toplam <span className="font-bold text-blue-600">{TOTAL_WEEKS}</span> Hafta
           </div>
         </div>
 
-        {/* 30 Weeks Sequential Full Feed */}
-        <div className="space-y-6">
+        {/* Vertical Feed for all 30 weeks */}
+        <div className="space-y-4">
           {allWeeks.map(weekNum => {
-            const meta = journalData.weeks[weekNum] || { weekNumber: weekNum, status: 'not_started' };
             const items = (journalData.items || [])
               .filter(it => Number(it.weekNumber) === Number(weekNum))
               .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+            const weekMeta = journalData.weeks[weekNum] || { status: 'not_started' };
             const isSelected = selectedWeek === weekNum;
 
             return (
               <div
                 key={weekNum}
-                id={`week-card-${weekNum}`}
-                className={`bg-white border rounded-2xl transition-all duration-200 overflow-hidden ${
+                className={`bg-white dark:bg-slate-850 border rounded-xl overflow-hidden transition-all duration-200 shadow-2xs ${
                   isSelected
-                    ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-md'
-                    : 'border-slate-200/90 shadow-2xs hover:border-slate-300'
+                    ? 'border-blue-500 dark:border-blue-500 ring-2 ring-blue-500/20'
+                    : 'border-slate-200 dark:border-slate-750 hover:border-slate-300 dark:hover:border-slate-700'
                 }`}
               >
-                {/* Week Header Banner */}
-                <div className="px-5 sm:px-6 py-4 bg-slate-50/60 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <span className="px-3 py-1 bg-blue-600 text-white font-bold rounded-lg text-sm tabular-nums">
-                      {weekNum}. Hafta
-                    </span>
+                {/* Week Feed Header */}
+                <div className="p-3.5 sm:p-4 bg-slate-50/50 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-750 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <button
+                      onClick={() => onSelectWeek(weekNum)}
+                      className="text-sm sm:text-base font-bold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <span>{weekNum}. Hafta</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                    </button>
 
-                    {meta.status === 'completed' ? (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">
-                        <CheckCircle2 className="w-3 h-3 text-blue-600" />
-                        <span>Tamamlandı</span>
+                    {weekMeta.status === 'completed' ? (
+                      <span className="flex items-center text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
+                        <CheckCircle2 className="w-3 h-3 mr-1 inline" />
+                        Tamamlandı
                       </span>
-                    ) : meta.status === 'in_progress' || items.length > 0 ? (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
-                        <Clock className="w-3 h-3 text-amber-600" />
-                        <span>Devam Ediyor</span>
+                    ) : weekMeta.status === 'in_progress' || items.length > 0 ? (
+                      <span className="flex items-center text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60">
+                        <Clock className="w-3 h-3 mr-1 inline" />
+                        Devam Ediyor
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                        <CircleDot className="w-3 h-3 text-slate-400" />
-                        <span>İçerik Eklenmemiş</span>
+                      <span className="flex items-center text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">
+                        <CircleDot className="w-3 h-3 mr-1 inline text-slate-400" />
+                        Henüz Boş
                       </span>
                     )}
                   </div>
 
-                  {/* Actions for this week */}
                   <div className="flex items-center gap-2">
-                    {/* Blue "+ Yenilik Ekle" button */}
                     <button
                       onClick={() => onOpenAddModalForWeek(weekNum)}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-bold rounded-lg transition-colors shadow-2xs cursor-pointer"
+                      className="flex items-center gap-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 px-2.5 py-1 rounded-lg border border-blue-200 dark:border-blue-800/50 transition-colors cursor-pointer"
                     >
-                      <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                      <span>Yenilik Ekle</span>
-                    </button>
-
-                    {/* Jump to Detail View */}
-                    <button
-                      onClick={() => onSelectWeek(weekNum)}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-white border border-slate-200 hover:border-blue-300 text-slate-700 hover:text-blue-700 text-xs font-semibold rounded-lg transition-colors cursor-pointer"
-                    >
-                      <span>İncele</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Ekle</span>
                     </button>
                   </div>
                 </div>
 
-                {/* Week Content Body */}
-                <div className="p-5 sm:p-6">
+                {/* Week Items Feed Body */}
+                <div className="p-3.5 sm:p-5">
                   {items.length === 0 ? (
-                    <div className="py-5 px-4 bg-slate-50/50 border border-dashed border-slate-200 rounded-xl text-center flex flex-col items-center justify-center">
-                      <span className="text-xs text-slate-400 font-medium">
-                        Bu hafta için henüz gelişim notu veya Google Drive bağlantısı eklenmedi.
-                      </span>
-                      <button
-                        onClick={() => onOpenAddModalForWeek(weekNum)}
-                        className="mt-2 text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 cursor-pointer"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>İlk yeniliği şimdi ekle</span>
-                      </button>
+                    <div className="py-4 text-center text-xs text-slate-400 dark:text-slate-500 italic">
+                      Bu haftaya ait henüz bir doküman veya kayıt girilmemiş.
                     </div>
                   ) : (
-                    <div className="space-y-4">
-                      {items.map(item => (
+                    <div className="space-y-3">
+                      {items.map(it => (
                         <div
-                          key={item.id}
-                          className="p-4 sm:p-5 rounded-xl border border-slate-200/90 bg-slate-50/40 hover:bg-slate-50/80 transition-colors"
+                          key={it.id}
+                          className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-xl p-3.5 sm:p-4 hover:border-slate-300 dark:hover:border-slate-600 transition-colors"
                         >
                           <div className="flex items-center justify-between gap-2 mb-2">
                             <div className="flex items-center gap-2">
-                              {item.type === 'drive' ? (
-                                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">
-                                  <Link2 className="w-3 h-3 text-blue-600" />
-                                  <span>Google Drive</span>
+                              {it.type === 'drive' ? (
+                                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
+                                  <Link2 className="w-3 h-3" />
+                                  Google Drive
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-700 bg-white border border-slate-200 px-2 py-0.5 rounded">
-                                  <FileText className="w-3 h-3 text-slate-500" />
-                                  <span>Gelişim Notu</span>
+                                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600">
+                                  <FileText className="w-3 h-3 text-slate-500 dark:text-slate-400" />
+                                  Not / Çalışma
                                 </span>
                               )}
-
-                              <span className="flex items-center gap-1 text-xs text-slate-500">
-                                <Calendar className="w-3 h-3 text-slate-400" />
-                                <span className="font-mono tabular-nums">{item.formattedDate}</span>
+                              <span className="text-[11px] text-slate-400 dark:text-slate-500 font-mono">
+                                {it.formattedDate}
                               </span>
                             </div>
 
                             <div className="flex items-center gap-1">
-                              {/* Küçük yenilik: Metni kopyalama butonu */}
                               <button
-                                onClick={() => handleCopyText(item.id, `${item.title}\n\n${item.content}`)}
-                                title="Notu panoya kopyala"
-                                className="p-1 text-slate-400 hover:text-blue-600 hover:bg-white rounded transition-colors cursor-pointer"
+                                onClick={() => handleCopyText(it.id, `${it.title}\n\n${it.content}`)}
+                                title="Metni kopyala"
+                                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded cursor-pointer"
                               >
-                                {copiedId === item.id ? (
-                                  <Check className="w-3.5 h-3.5 text-blue-600" />
+                                {copiedId === it.id ? (
+                                  <Check className="w-3.5 h-3.5 text-emerald-600" />
                                 ) : (
                                   <Copy className="w-3.5 h-3.5" />
                                 )}
                               </button>
                               <button
-                                onClick={() => onOpenEditModal(item)}
+                                onClick={() => onOpenEditModal(it)}
                                 title="Düzenle"
-                                className="p-1 text-slate-400 hover:text-blue-700 hover:bg-white rounded transition-colors cursor-pointer"
+                                className="p-1 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 rounded cursor-pointer"
                               >
                                 <Edit2 className="w-3.5 h-3.5" />
                               </button>
                               <button
-                                onClick={() => {
-                                  if (confirm('Bu kaydı silmek istediğinize emin misiniz?')) {
-                                    onDeleteItem(item.id);
-                                  }
-                                }}
+                                onClick={() => onDeleteItem(it.id)}
                                 title="Sil"
-                                className="p-1 text-slate-400 hover:text-rose-600 hover:bg-white rounded transition-colors cursor-pointer"
+                                className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded cursor-pointer"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           </div>
 
-                          <h4 className="text-base font-bold text-slate-900 mb-1.5">
-                            {item.title}
+                          <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white mb-1.5">
+                            {it.title}
                           </h4>
-
-                          <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line font-normal">
-                            {item.content}
+                          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 whitespace-pre-line leading-relaxed mb-3">
+                            {it.content}
                           </p>
 
-                          {item.type === 'drive' && item.driveUrl && (
-                            <div className="mt-3 pt-3 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white p-3 rounded-lg border">
-                              <span className="truncate text-xs font-mono text-slate-600">
-                                {item.driveUrl}
+                          {it.type === 'drive' && it.driveUrl && (
+                            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200 dark:border-slate-700/80">
+                              <span className="text-xs text-slate-400 font-mono truncate max-w-xs sm:max-w-md">
+                                {it.driveUrl}
                               </span>
                               <a
-                                href={item.driveUrl}
+                                href={it.driveUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shrink-0 shadow-2xs"
+                                className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
                               >
-                                <span>Drive'da Aç</span>
+                                <span>Drive Dosyasını Aç</span>
                                 <ExternalLink className="w-3.5 h-3.5" />
                               </a>
                             </div>

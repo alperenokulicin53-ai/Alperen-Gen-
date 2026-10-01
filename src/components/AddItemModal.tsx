@@ -21,16 +21,13 @@ export function AddItemModal({ isOpen, weekNumber, onClose, onSubmit }: AddItemM
   const [activeTab, setActiveTab] = useState<'post' | 'drive'>('post');
   const [targetWeek, setTargetWeek] = useState<number>(weekNumber);
 
-  // Sync targetWeek with weekNumber when opening
   React.useEffect(() => {
     setTargetWeek(weekNumber);
   }, [weekNumber, isOpen]);
   
-  // Post state
   const [postTitle, setPostTitle] = useState('');
   const [postContent, setPostContent] = useState('');
 
-  // Drive state
   const [driveTitle, setDriveTitle] = useState('');
   const [driveUrl, setDriveUrl] = useState('');
   const [driveDescription, setDriveDescription] = useState('');
@@ -58,12 +55,13 @@ export function AddItemModal({ isOpen, weekNumber, onClose, onSubmit }: AddItemM
     if (activeTab === 'post') {
       const trimmedTitle = postTitle.trim();
       const trimmedContent = postContent.trim();
+
       if (!trimmedTitle) {
-        setErrorMessage('Lütfen yazı için bir başlık belirleyin.');
+        setErrorMessage('Lütfen bir başlık giriniz.');
         return;
       }
       if (!trimmedContent) {
-        setErrorMessage('Lütfen o haftaya ait çalışmalarınızı anlatan metni girin.');
+        setErrorMessage('Lütfen gelişime ait içerik/açıklama giriniz.');
         return;
       }
 
@@ -80,25 +78,25 @@ export function AddItemModal({ isOpen, weekNumber, onClose, onSubmit }: AddItemM
         setPostContent('');
         onClose();
       } catch (err: unknown) {
-        setErrorMessage(err instanceof Error ? err.message : 'Kayıt sırasında bir hata oluştu');
+        setErrorMessage(err instanceof Error ? err.message : 'Kaydedilirken bir hata oluştu');
       } finally {
         setIsSubmitting(false);
       }
     } else {
       const trimmedTitle = driveTitle.trim();
       const trimmedUrl = driveUrl.trim();
-      const trimmedDesc = driveDescription.trim();
+      const trimmedDesc = driveDescription.trim() || 'Google Drive proje bağlantısı';
 
       if (!trimmedTitle) {
-        setErrorMessage('Lütfen Google Drive bağlantısı için bir başlık girin.');
+        setErrorMessage('Lütfen Drive linki için bir başlık (ör: Proje 1 Sunumu) giriniz.');
         return;
       }
       if (!trimmedUrl) {
-        setErrorMessage('Lütfen Google Drive bağlantı URL’sini yapıştırın.');
+        setErrorMessage('Lütfen Google Drive bağlantı adresini (URL) giriniz.');
         return;
       }
       if (!validateUrl(trimmedUrl)) {
-        setErrorMessage('Lütfen geçerli bir internet bağlantısı (https://...) girin.');
+        setErrorMessage('Lütfen geçerli bir internet bağlantısı giriniz (https://drive.google.com/...)');
         return;
       }
 
@@ -108,7 +106,7 @@ export function AddItemModal({ isOpen, weekNumber, onClose, onSubmit }: AddItemM
           weekNumber: targetWeek,
           type: 'drive',
           title: trimmedTitle,
-          content: trimmedDesc || 'Google Drive bağlantısı',
+          content: trimmedDesc,
           driveUrl: trimmedUrl,
           formattedDate,
         });
@@ -117,7 +115,7 @@ export function AddItemModal({ isOpen, weekNumber, onClose, onSubmit }: AddItemM
         setDriveDescription('');
         onClose();
       } catch (err: unknown) {
-        setErrorMessage(err instanceof Error ? err.message : 'Kayıt sırasında bir hata oluştu');
+        setErrorMessage(err instanceof Error ? err.message : 'Kaydedilirken bir hata oluştu');
       } finally {
         setIsSubmitting(false);
       }
@@ -125,184 +123,168 @@ export function AddItemModal({ isOpen, weekNumber, onClose, onSubmit }: AddItemM
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-white rounded-2xl max-w-xl w-full border border-slate-200 shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden transition-colors">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-blue-50/50">
+        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
           <div>
-            <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
-              <span className="text-blue-700 font-extrabold">{targetWeek}. Hafta</span>
-              <span>İçin Yenilik Ekle</span>
-            </h2>
-            <p className="text-xs text-slate-500">
-              Haftalık çalışmanızı, projenizi veya Google Drive dokümanınızı doğrudan kaydedin
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+              Haftalık Yenilik Ekle
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Bulut veritabanına anında kaydedilir ve tüm cihazlarda görünür
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+            className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Week Selector Dropdown & Tab Selection */}
-        <div className="px-6 pt-4 space-y-3">
-          <div className="flex items-center justify-between gap-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-            <label className="text-xs font-bold text-slate-700">
-              Eklenecek Hafta:
-            </label>
-            <select
-              value={targetWeek}
-              onChange={e => setTargetWeek(Number(e.target.value))}
-              className="text-xs sm:text-sm font-bold bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-            >
-              {Array.from({ length: TOTAL_WEEKS }, (_, i) => i + 1).map(w => (
-                <option key={w} value={w}>
-                  {w}. Hafta
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl">
+        {/* Tab Selection */}
+        <div className="px-6 pt-4">
+          <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
             <button
               type="button"
-              onClick={() => {
-                setActiveTab('post');
-                setErrorMessage(null);
-              }}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+              onClick={() => setActiveTab('post')}
+              className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'post'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-300 shadow-2xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <FileText className="w-4 h-4" />
-              <span>Yazı &amp; Çalışma Notu</span>
+              <span>Gelişim Notu</span>
             </button>
             <button
               type="button"
-              onClick={() => {
-                setActiveTab('drive');
-                setErrorMessage(null);
-              }}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+              onClick={() => setActiveTab('drive')}
+              className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'drive'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-300 shadow-2xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <Link2 className="w-4 h-4" />
-              <span>Google Drive Bağlantısı</span>
+              <span>Google Drive Linki</span>
             </button>
           </div>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto flex-1 flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {errorMessage && (
-            <div className="flex items-center gap-2 text-xs font-medium text-rose-700 bg-rose-50 border border-rose-200 p-3 rounded-lg">
-              <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+            <div className="p-3 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900/60 rounded-xl text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
               <span>{errorMessage}</span>
             </div>
           )}
 
+          {/* Week Selection dropdown */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Hangi Haftaya Eklenecek?
+            </label>
+            <select
+              value={targetWeek}
+              onChange={e => setTargetWeek(Number(e.target.value))}
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+            >
+              {Array.from({ length: TOTAL_WEEKS }, (_, i) => i + 1).map(num => (
+                <option key={num} value={num} className="dark:bg-slate-800">
+                  {num}. Hafta {num === weekNumber ? '(Şu Anki Seçili)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {activeTab === 'post' ? (
             <>
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Başlık <span className="text-rose-500">*</span>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Başlık
                 </label>
                 <input
                   type="text"
+                  placeholder="Ör: Veritabanı Mimarisi Tasarlandı"
                   value={postTitle}
                   onChange={e => setPostTitle(e.target.value)}
-                  placeholder="Örn: Proje Altyapısının Kurulumu ve Araştırmalar"
-                  className="w-full text-sm bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-colors"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                 />
               </div>
 
-              <div className="flex-1 flex flex-col">
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-bold text-slate-700">
-                    Haftalık Çalışma &amp; Gelişim Detayı <span className="text-rose-500">*</span>
-                  </label>
-                  {/* Küçük yenilik: Canlı karakter sayacı */}
-                  <span className="text-[11px] text-slate-400 font-mono">
-                    {postContent.length} karakter
-                  </span>
-                </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Açıklama / Detaylar
+                </label>
                 <textarea
+                  rows={4}
+                  placeholder="Bu hafta yapılan çalışmalar, ulaşılan sonuçlar, karşılaşılan zorluklar..."
                   value={postContent}
                   onChange={e => setPostContent(e.target.value)}
-                  placeholder="Bu hafta hangi adımları attınız? Hangi teknolojileri veya konuları öğrendiniz? Karşılaştığınız zorluklar ve çözümler neler oldu? Detaylı şekilde yazabilirsiniz..."
-                  rows={7}
-                  className="w-full text-sm bg-white border border-slate-200 rounded-lg p-3.5 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-colors resize-y leading-relaxed font-normal"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none"
                 />
               </div>
             </>
           ) : (
             <>
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Bağlantı Başlığı <span className="text-rose-500">*</span>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Başlık
                 </label>
                 <input
                   type="text"
+                  placeholder="Ör: Proje 1 Raporu &amp; Sunum Dosyası"
                   value={driveTitle}
                   onChange={e => setDriveTitle(e.target.value)}
-                  placeholder="Örn: 1. Hafta Kaynak Kodları ve Tasarım Dosyaları Klasörü"
-                  className="w-full text-sm bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-colors"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Google Drive Bağlantısı (URL) <span className="text-rose-500">*</span>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Google Drive Bağlantı Linki (URL)
                 </label>
                 <input
                   type="url"
+                  placeholder="https://drive.google.com/file/d/..."
                   value={driveUrl}
                   onChange={e => setDriveUrl(e.target.value)}
-                  placeholder="https://drive.google.com/drive/folders/... veya https://docs.google.com/..."
-                  className="w-full text-sm font-mono bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-colors"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white font-mono placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                 />
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Google Drive klasör, PDF, doküman veya dosya paylaşım bağlantınızı doğrudan yapıştırın.
-                </p>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Açıklama (Opsiyonel)
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Kısa Açıklama (İsteğe bağlı)
                 </label>
                 <textarea
+                  rows={2}
+                  placeholder="Ör: Projeye ait tüm kaynak kodları ve sunum slaytı bu Drive klasöründedir."
                   value={driveDescription}
                   onChange={e => setDriveDescription(e.target.value)}
-                  placeholder="Bu Drive klasöründe veya belgesinde neler yer alıyor? Öğretmeninizin dikkat etmesi gereken özel bir dosya var mı?"
-                  rows={4}
-                  className="w-full text-sm bg-white border border-slate-200 rounded-lg p-3.5 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-colors resize-y"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none"
                 />
               </div>
             </>
           )}
 
-          {/* Action Buttons */}
-          <div className="pt-4 border-t border-slate-200 flex items-center justify-end gap-3">
+          <div className="pt-2 flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
             >
-              İptal
+              Vazgeç
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-6 py-2.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg transition-colors shadow-xs disabled:opacity-50 cursor-pointer"
+              className="px-5 py-2.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-60 rounded-xl transition-all shadow-xs cursor-pointer"
             >
-              {isSubmitting ? 'Kaydediliyor...' : 'Yeniliği Kaydet'}
+              {isSubmitting ? 'Kaydediliyor...' : 'Buluta Kaydet'}
             </button>
           </div>
         </form>

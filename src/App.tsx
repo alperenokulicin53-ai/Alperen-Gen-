@@ -237,8 +237,8 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-slate-800 flex flex-col font-sans selection:bg-blue-100 selection:text-blue-900">
-      {/* Top Bar Header with Blue + Yenilik Ekle button */}
+    <div className="min-h-screen bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 flex flex-col font-sans selection:bg-blue-100 dark:selection:bg-blue-900 selection:text-blue-900 dark:selection:text-blue-100 transition-colors">
+      {/* Top Bar Header with Theme toggle & + Yenilik Ekle button */}
       <Header
         onOpenAddModal={() => handleOpenAddModal(selectedWeek)}
         journalData={journalData}
@@ -288,12 +288,12 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white py-8 text-center text-xs text-slate-500">
+      <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-6 text-center text-xs text-slate-500 dark:text-slate-400 transition-colors">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="font-bold text-slate-800">
+          <div className="font-bold text-slate-800 dark:text-slate-200">
             Alperen Genç — Haftalık Gelişim Günlüğü
           </div>
-          <div className="text-slate-500">
+          <div className="text-slate-500 dark:text-slate-400">
             30 Haftalık Kişisel Proje ve Çalışma Süreci Dokümantasyonu
           </div>
         </div>
